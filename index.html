@@ -156,6 +156,19 @@
         .loading {
             color: #ffcc00;
         }
+        .warning-text {
+            color: #ff8800;
+        }
+        .status-bar {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            background: #0d0d0d;
+            border: 1px solid #1a4a3a;
+            font-size: 0.85rem;
+            color: #66ccaa;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -175,6 +188,8 @@
 
         <button class="btn" id="submitBtn">▶ SUBMIT</button>
 
+        <div class="status-bar" id="statusBar">🟢 Sistem pregătit</div>
+
         <div class="response-box" id="responseBox">
             <label>📌 RESPONSE</label>
             <div id="responseContent">Așteaptă trimiterea...</div>
@@ -191,6 +206,7 @@
             const passwordInput = document.getElementById('passwordInput');
             const submitBtn = document.getElementById('submitBtn');
             const responseContent = document.getElementById('responseContent');
+            const statusBar = document.getElementById('statusBar');
 
             const API_URL = '/api/proxy';
 
@@ -199,10 +215,21 @@
                     'error': 'error-text',
                     'success': 'success-text',
                     'loading': 'loading',
+                    'warning': 'warning-text',
                     'info': ''
                 };
                 const className = colors[type] || '';
                 responseContent.innerHTML = `<span class="${className}">${text}</span>`;
+            }
+
+            function setStatus(text, type = 'info') {
+                const icons = {
+                    'info': '🟢',
+                    'loading': '🟡',
+                    'error': '🔴',
+                    'success': '✅'
+                };
+                statusBar.textContent = `${icons[type] || '🟢'} ${text}`;
             }
 
             async function performBypass() {
@@ -211,15 +238,18 @@
 
                 if (!cookie) {
                     setResponse('❌ Eroare: Câmpul COOKIE este gol.', 'error');
+                    setStatus('Eroare: Cookie gol', 'error');
                     return;
                 }
                 if (!password) {
                     setResponse('❌ Eroare: Câmpul PASSWORD este gol.', 'error');
+                    setStatus('Eroare: Parolă goală', 'error');
                     return;
                 }
 
                 submitBtn.disabled = true;
                 submitBtn.textContent = '⏳ PROCESARE...';
+                setStatus('Se trimite cererea... (delay 2-5s)', 'loading');
                 setResponse('🔄 Se trimite cererea către proxy...', 'loading');
 
                 try {
@@ -229,6 +259,7 @@
                         type: 'Age'
                     };
 
+                    const startTime = Date.now();
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: {
@@ -236,6 +267,9 @@
                         },
                         body: JSON.stringify(payload)
                     });
+
+                    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                    setStatus(`Răspuns primit în ${elapsed}s`, 'info');
 
                     const rawText = await response.text();
 
@@ -245,21 +279,33 @@
 
                         if (jsonData.status === 'success') {
                             setResponse(`✅ SUCCESS\n\n${formatted}`, 'success');
+                            setStatus('✅ Bypass reușit!', 'success');
                         } else if (jsonData.error) {
                             setResponse(`❌ ERROR\n\n${jsonData.error}`, 'error');
+                            setStatus('❌ Eroare: ' + jsonData.error, 'error');
+                        } else if (rawText.toLowerCase().includes('eggywall')) {
+                            setResponse(`⚠️ EGGYWALL DETECTED\n\n${rawText.substring(0, 500)}`, 'warning');
+                            setStatus('⚠️ Eggywall a blocat requestul', 'error');
                         } else {
                             setResponse(`📄 RESPONSE\n\n${formatted}`, 'info');
+                            setStatus('Răspuns primit', 'info');
                         }
                     } catch (e) {
-                        if (rawText.includes('error') || rawText.includes('Error')) {
+                        if (rawText.toLowerCase().includes('eggywall')) {
+                            setResponse(`⚠️ EGGYWALL BLOCK\n\n${rawText.substring(0, 500)}`, 'warning');
+                            setStatus('⚠️ Blocat de Eggywall', 'error');
+                        } else if (rawText.includes('error') || rawText.includes('Error')) {
                             setResponse(`❌ ERROR\n\n${rawText}`, 'error');
+                            setStatus('❌ Eroare server', 'error');
                         } else {
                             setResponse(`📄 RAW RESPONSE\n\n${rawText}`, 'info');
+                            setStatus('Răspuns brut primit', 'info');
                         }
                     }
 
                 } catch (error) {
                     setResponse(`❌ Network Error\n\n${error.message}`, 'error');
+                    setStatus(`❌ Eroare rețea: ${error.message}`, 'error');
                 }
 
                 submitBtn.disabled = false;
@@ -276,6 +322,7 @@
             });
 
             setResponse('Așteaptă trimiterea...', 'info');
+            setStatus('🟢 Sistem pregătit', 'info');
         })();
     </script>
 </body>
